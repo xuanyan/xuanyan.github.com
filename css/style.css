@@ -80,6 +80,7 @@ h1, .post, .link-post {
 }
 
 code {
+  font: 18px 'PT Sans', sans-serif;
   -moz-border-radius: 0.2em;
   -webkit-border-radius: 0.2em;
 }
