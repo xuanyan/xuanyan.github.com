@@ -1,12 +1,11 @@
 
 
 .highlight  {
-    background: #ffffff; 
     font: 0.7em Monaco, monospace;
     line-height: 1.4em;
     display: block;
     color: white;
-/*    background: #222;*/
+    background: #222;
     -moz-border-radius: 0.3em;
     -webkit-border-radius: 0.3em;
     padding: 0.6em;
