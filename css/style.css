@@ -50,7 +50,6 @@ body {
 
 h2 {
   font-size: 1.8em;
-  font-family: "ff-tisa-web-pro-1","ff-tisa-web-pro-2";
   font-weight: 100;
   line-height: 1.3em;
   border-bottom: 1px solid #ddd;
@@ -95,7 +94,6 @@ code {
 }
 
 .meta {
-  font-family: "ff-tisa-web-pro-1","ff-tisa-web-pro-2";
   font-size: 0.9em;
   font-weight: bold;
   color: #999;
