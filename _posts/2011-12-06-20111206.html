@@ -1,0 +1,47 @@
+---
+layout: post
+title: php根据SplSubject及SplObserver接口实现观察者设计模式
+---
+<p>看到Spl中有这两个Interface, 自己尝试写了一下, 只实现了接口方法. 个人感觉, 适合做消息提醒及日志记录, 或类似于hook机制的插件.</p>
+
+{% highlight php %}
+class Subject implements SplSubject
+{
+    private $storage = null;
+
+    function __construct()
+    {
+        $this->storage = new SplObjectStorage();
+    }
+
+    public function attach(SplObserver $observer)
+    {
+        $this->storage->attach($observer);
+    }
+
+    public function detach(SplObserver $observer)
+    {
+        $this->storage->detach($observer);
+    }
+
+    public function notify()
+    {
+        foreach ($this->storage as $obj) {
+            $obj->update($this);
+        }
+    }
+}
+
+class Observer implements SplObserver
+{
+    public function update(SplSubject $subject)
+    {
+        echo "The subject is updating me\n";
+    }
+}
+
+$subject = new Subject();
+$observer = new Observer();
+$subject->attach($observer);
+$subject->notify();
+{% endhighlight %}
