@@ -1,0 +1,44 @@
+---
+layout: post
+title: 使用图片的二进制信息,获取图片的类型
+---
+<p>php中,如果只能获取图片的二进制内容,如何获取图片的类型呢? 当然,除非必不得以,我不会选择通过内容的部分字节来判断类型. 能使用的函数是 getimagesize</p>
+
+<p>getimagesize 只接收图片地址, 没有地址只有数据, 如果有文件的写权限, 可以通过先写一个临时文件, 然后使用 getimagesize 函数获取图片类型信息.</p>
+
+<p>还有一种方法, 使用 stream wrapper, 给出我的测试代码, 供大家参考:</p>
+
+{% highlight php %}
+class getimagesizeStream
+{
+
+    private static $position = 0;
+    public static $blob = '';
+
+    public static function stream_open($path, $mode, $options, &$opened_path)
+    {
+        self::$position = 0;
+
+        return true;
+    }
+
+    public static function stream_read($count)
+    {
+        $ret = substr(self::$blob, self::$position, $count);
+        self::$position += strlen($ret);
+        return $ret;
+    }
+
+    public static function stream_eof()
+    {
+        return self::$position >= strlen(self::$blob);
+    }
+}
+
+stream_wrapper_register("getimagesize", "getimagesizeStream");
+
+getimagesizeStream::$blob = file_get_contents('./1.png'); 
+// 只是模拟获取图片数据,实际上,数据可能是存在数据库里,并没有实际的文件地址
+
+print_r(getimagesize('getimagesize://'));
+{% endhighlight %}
