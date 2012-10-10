@@ -1,0 +1,32 @@
+---
+layout: post
+title: php中针对错误和异常的统一处理
+---
+<p>网站开发中,需要针对异常和错误的捕捉,来帮助程序开发者进行bug的修改及网站错误日志记录或者呈现一个相对有好的错误页面.</p>
+
+<p>如何可以统一管理这些异常和错误? 下面是我准备使用的处理方式:</p>
+
+{% highlight php %}
+
+// 捕捉错误,抛出异常
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+	throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+});
+
+// 捕捉undefined function 错误, 抛出异常
+register_shutdown_function(function() {
+    if ($error = error_get_last()) {
+		throw new ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']);
+    }
+});
+
+// 统一捕捉异常
+set_exception_handler(function($e) {
+	if ($e instanceof ErrorException) {
+		// 错误抛出的异常
+	} elseif ($e instanceof Exception) {
+		// 真正的异常
+	}
+});
+
+{% endhighlight %}
