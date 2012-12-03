@@ -1,0 +1,97 @@
+---
+layout: post
+title: 静态对象继承,变量的继承,需要在父类声明
+---
+
+<p>写了一个单例的基类,其中使用了static::$instance静态变量,看下面代码会出现什么问题:</p>
+
+{% highlight php %}
+
+class Singleton
+{
+    protected static $instance = null;
+
+    public static function getInstance()
+    {
+
+        if (!static::$instance instanceof static) {
+            static::$instance = new static();
+        }
+
+        return static::$instance;
+    }
+
+    function __construct()
+    {
+        echo '__init__',get_class($this),"\n";
+    }
+    
+    function run()
+    {
+        echo get_class($this),"\n";
+    }
+}
+
+
+class a extends Singleton{}
+
+class b extends Singleton{}
+
+a::getInstance()->run();
+a::getInstance()->run();
+b::getInstance()->run();
+a::getInstance()->run();
+
+{% endhighlight %}
+
+<p>结果为:</p>
+
+<code>
+__init__a
+a
+a
+__init__b
+b
+__init__a
+a
+</code>
+
+<p>可以看到__init__a出现了2次,这并不是我们想达到的效果,原来静态类变量在继承过程中,是不会自动声明的,改成如下代码解决问题</p>
+
+{% highlight php %}
+
+class a extends Singleton
+{
+    protected static $instance = null;
+}
+
+class b extends Singleton
+{
+    protected static $instance = null;
+}
+
+{% endhighlight %}
+
+<p>而这样使用,稍微有些麻烦,容易遗忘,最终的单例基类改成如下:</p>
+
+{% highlight php %}
+
+class Singleton
+{
+    private static $instance = array();
+
+    public static function getInstance()
+    {
+        $class = get_called_class();
+        if (!isset(self::$instance[$class])) {
+            self::$instance[$class] = new static();
+        }
+
+        return self::$instance[$class];
+    }
+}
+
+{% endhighlight %}
+
+
+
