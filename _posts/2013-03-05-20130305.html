@@ -1,0 +1,17 @@
+---
+layout: post
+title: 利用svn hook pre-commit 只允许固定提交者的提交
+---
+
+<p>网站上线的时候，有时需要临时停掉其他人的svn 提交，可以使用pre-commit hook来达到类似的效果:</p>
+
+{% highlight bash %}
+REPOS="$1"
+TXN="$2"
+
+/usr/bin/svnlook author -t "$TXN" "$REPOS" | grep 'xuanyan' && exit 0
+
+exit 1
+
+{% endhighlight %}
+
