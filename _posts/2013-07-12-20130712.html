@@ -8,7 +8,15 @@ title: 关于AJAX跨域进行POST请求的一个新认识
   {% highlight javascript %}
     if (name && email && area && phone &&phone && company && site && desc) {
         alert('谢谢订购');
-        $.post('http://siteb/send.php',{ 'name': name, 'email': email, 'phone':phone, 'company':company, 'site':site, 'desc':desc}, function(data){
+        var data = {
+            'name': name,
+            'email': email,
+            'phone':phone,
+            'company':company,
+            'site':site,
+            'desc':desc
+        };
+        $.post('http://siteb/send.php',data, function(data){
             if (data == '1') {
                 alert('订购成功');
             }else{
