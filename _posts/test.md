@@ -1,3 +1,8 @@
+---
+layout: post
+title: php根据SplSubject及SplObserver接口实现观察者设计模式
+---
+
 ## 用户中心部署文档
 
 ### 主站:
