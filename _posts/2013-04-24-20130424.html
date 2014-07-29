@@ -7,7 +7,7 @@ title: 在 php 5.2.x 下使用composer
 <p>为了加大框架的适应性，并可以不改变composer ClassLoader 的使用方式。修改了一下composer 的ClassLoader，适用于 php 5.2.x。</p>
 <p>在调用 /vendor/autoload.php 的时候判断一下php版本，载入不同的autoload.php，编写自己的autoload.php进行 /vendor/composer/autoload_namespaces.php, /vendor/composer/autoload_classmap.php 两个文件的载入并返回修改过的loader对象。</p>
 
-{% highlight php %}
+<pre>
 
 $loader = new ClassLoader();
 
@@ -25,6 +25,6 @@ $loader->register(true);
 
 return $loader;
 
-{% endhighlight %}
+</pre>
 
 <p>ClassLoader.php - <a href="https://gist.github.com/xuanyan/5450446">https://gist.github.com/xuanyan/5450446</a></p>

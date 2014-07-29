@@ -6,7 +6,7 @@ title: php中针对错误和异常的统一处理
 
 <p>如何可以统一管理这些异常和错误? 下面是我准备使用的处理方式:</p>
 
-{% highlight php %}
+<pre>
 
 // 捕捉错误,抛出异常
 set_error_handler(function($errno, $errstr, $errfile, $errline) {
@@ -29,4 +29,4 @@ set_exception_handler(function($e) {
 	}
 });
 
-{% endhighlight %}
+</pre>

@@ -8,7 +8,7 @@ title: 使用图片的二进制信息,获取图片的类型
 
 <p>还有一种方法, 使用 stream wrapper, 给出我的测试代码, 供大家参考:</p>
 
-{% highlight php %}
+<pre>
 class getimagesizeStream
 {
 
@@ -41,4 +41,4 @@ getimagesizeStream::$blob = file_get_contents('./1.png');
 // 只是模拟获取图片数据,实际上,数据可能是存在数据库里,并没有实际的文件地址
 
 print_r(getimagesize('getimagesize://'));
-{% endhighlight %}
+</pre>
