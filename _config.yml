@@ -1,2 +1,3 @@
 permalink: /:year/:month/:title.html
-pygments: true
+paginate: 5
+paginate_path: "page:num"
