@@ -6,7 +6,7 @@ description: "Personal blog of XuanYan, in which he writes about web development
 {% for page in paginator.posts %}
 {% assign body = page.content %}
 {% include post-div.html %}
-<a href="http://xuanyan.org{{ page.url }}#disqus_thread">Link</a>
+<p><a href="http://xuanyan.org{{ page.url }}#disqus_thread">Link</a></p>
 {% endfor %}
 
 <ul class="pagination">
