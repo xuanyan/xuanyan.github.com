@@ -10,7 +10,7 @@ description: "Personal blog of XuanYan, in which he writes about web development
 
 <div class="pagination">
   {% if paginator.previous_page %}
-    <a href="/page{{ paginator.previous_page }}" class="previous">Previous</a>
+    <a href="/{{ paginator.previous_page_path }}" class="previous">Previous</a>
   {% else %}
     <span class="previous">Previous</span>
   {% endif %}
