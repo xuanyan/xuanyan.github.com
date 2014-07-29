@@ -18,9 +18,9 @@ description: "Personal blog of XuanYan, in which he writes about web development
   {% if page == paginator.page %}
     <li class="active"><a href="#">{{ page }}</a></li>
   {% elsif page == 1 %}
-    <a href="/index.html">{{ page }}</a>
+    <li><a href="/index.html">{{ page }}</a></li>
   {% else %}
-    <a href="{{ site.paginate_path | replace: ':num', page }}">{{ page }}</a>
+    <li><a href="{{ site.paginate_path | replace: ':num', page }}">{{ page }}</a></li>
   {% endif %}
 {% endfor %}
 
