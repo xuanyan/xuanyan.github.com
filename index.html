@@ -9,7 +9,7 @@ description: "Personal blog of XuanYan, in which he writes about web development
 </div>
 {{ post.excerpt }}
 <ul class="nav nav-pills" role="tablist">
-  <li role="presentation"><span class="glyphicon glyphicon-plus"></span><a href="{{ post.url }}">Read More</a></li>
+  <li role="presentation"><a href="{{ post.url }}"><span class="glyphicon glyphicon-plus"></span>Read More</a></li>
   <li role="presentation"><a href="http://xuanyan.org{{ post.url }}#disqus_thread">Link</a></li>
   <li role="presentation" class="disabled"><a href="#">Link</a>{{ post.date | date_to_long_string }}</li>
 </ul>
