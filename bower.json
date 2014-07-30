@@ -1,0 +1,20 @@
+{
+  "name": "xuanyan.org",
+  "version": "1.0.0",
+  "homepage": "https://github.com/xuanyan/xuanyan.github.com",
+  "authors": [
+    "xuanyan <xuanyan1983@gmail.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.2.0",
+    "jquery": "~2.1.1"
+  }
+}
