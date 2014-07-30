@@ -10,8 +10,10 @@ description: "Personal blog of XuanYan, in which he writes about web development
     <small>{{ post.date | date: "%e" | ordinalize }} {{ post.date | date: "%B"}} {{ post.date | date: "%Y"}}</small>
   </h2>
 </div>
-{{ post.excerpt }}<span class="label label-primary"><a>Read More</a></span>
-<p><a href="http://xuanyan.org{{ post.url }}#disqus_thread">Link</a></p>
+{{ post.excerpt }}
+<ul class="nav nav-pills" role="tablist">
+  <li role="presentation"><a href="http://xuanyan.org{{ post.url }}#disqus_thread">Link</a></li>
+</ul>
 {% endfor %}
 
 <ul class="pagination">
