@@ -14,7 +14,7 @@ layout: nil
  {% for post in site.posts limit:10 %}
  <entry>
    <id>http://xuanyan.org{{ post.url }}</id>
-   <link href="http://tomafro.net{{ post.url }}"/>
+   <link href="http://xuanyan.org{{ post.url }}"/>
    <title>{{ post.title }}</title>
    <author>
      <name>Xuan Yan</name>
