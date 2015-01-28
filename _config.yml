@@ -1,5 +1,5 @@
 permalink: /:year/:month/:title.html
 paginate: 5
-paginate_path: "page:num"
+paginate_path: "/page:num"
 excerpt_separator: "<!-- more -->"
 cdn_domain: http://7lrwf5.com1.z0.glb.clouddn.com
