@@ -1,0 +1,418 @@
+swagger: '2.0'
+info:
+  version: v1
+  title: 用户中心v1接口
+  description: 用户中心v1接口
+  termsOfService: http://dealmoon.com
+basePath: /v1
+schemes:
+  - http
+  - https
+consumes:
+  - multipart/form-data
+produces:
+  - application/json
+security:
+  - dm_token: []
+  - dm_udid: []
+  - dm_type: []
+  - dm_ip: []
+securityDefinitions:
+  dm_token:
+    type: apiKey
+    in: query
+    name: dm_token
+  dm_udid:
+    type: apiKey
+    in: query
+    name: dm_udid
+  dm_type:
+    type: apiKey
+    in: query
+    name: dm_type
+  dm_ip:
+    type: apiKey
+    in: query
+    name: dm_ip
+paths:
+  /user/info:
+    post:
+      description: 通过token获取用户信息
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/userInfo'
+  /user/logout:
+    post:
+      description: 用户退出
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/result'
+  /user/login:
+    post:
+      parameters:
+      - name: email
+        in: formData
+        description: 用户email
+        required: true
+        type: string
+      - name: password
+        in: formData
+        description: 用户密码
+        required: true
+        type: string
+      - name: bindUser
+        in: formData
+        description: 是否绑定用户
+        type: string
+        enum:
+          - 0
+          - 1
+      - name: bindInfo[openId]
+        in: formData
+        description: 第三方绑定id
+        type: string
+      - name: bindInfo[type]
+        in: formData
+        description: 类型
+        type: string
+        enum:
+          - sina
+          - qq
+          - renren
+          - douban
+          - facebook
+          - twitter
+          - wechat
+      - name: bindInfo[unionid]
+        in: formData
+        description: 微信登录使用
+        type: string
+      - name: bindInfo[nickname]
+        in: formData
+        description: 第三方昵称
+        type: string
+      description: 通过token获取用户信息
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/loginInfo'
+  /user/register:
+    post:
+      parameters:
+      - name: userInfo[name]
+        in: formData
+        description: 用户名
+        required: true
+        type: string
+      - name: userInfo[email]
+        in: formData
+        description: 用户email
+        required: true
+        type: string
+      - name: userInfo[password]
+        in: formData
+        description: 用户密码
+        required: true
+        type: string
+      - name: newsletter
+        in: formData
+        description: 是否订阅邮件
+        type: integer
+        enum:
+          - 0
+          - 1
+      - name: bindInfo[openId]
+        in: formData
+        description: 第三方绑定id
+        type: string
+      - name: bindInfo[type]
+        in: formData
+        description: 类型
+        type: string
+        enum:
+          - sina
+          - qq
+          - renren
+          - douban
+          - facebook
+          - twitter
+          - wechat
+      - name: bindInfo[unionid]
+        in: formData
+        description: 微信登录使用
+        type: string
+      - name: bindInfo[nickname]
+        in: formData
+        description: 第三方昵称
+        type: string
+      description: 用户注册
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/loginInfo'
+  /user/update:
+    post:
+      parameters:
+      - name: name
+        in: formData
+        description: 用户名
+        type: string
+      - name: password[oldPassword]
+        in: formData
+        description: 原密码
+        type: string
+      - name: password[newPassword]
+        in: formData
+        description: 新密码
+        type: string
+      - name: avatar
+        in: formData
+        description: 头像地址
+        type: string
+      - name: sex
+        in: formData
+        description: 性别
+        type: string
+        enum:
+          - men
+          - women
+          - secret
+      - name: birthday
+        in: formData
+        description: 生日
+        type: string
+      - name: language
+        in: formData
+        description: 设置语言
+        type: string
+      - name: mobile
+        in: formData
+        description: 手机号码
+        type: string
+      - name: introduce
+        in: formData
+        description: 简介
+        type: string
+      description: 用户注册
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/userInfo'
+  /user/forgetpassword:
+    post:
+      parameters:
+      - name: email
+        in: formData
+        description: 用户email
+        required: true
+        type: string
+      description: 用户忘记密码
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/result'
+  /user/sendactivemail:
+    post:
+      parameters:
+      - name: newEmail
+        in: formData
+        description: 其它邮箱
+        type: string
+      description: 发送验证邮件
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/result'  
+  /user/bind:
+    post:
+      parameters:
+      - name: bindInfo[openId]
+        in: formData
+        description: 第三方绑定id
+        type: string
+      - name: bindInfo[type]
+        in: formData
+        description: 类型
+        type: string
+        enum:
+          - sina
+          - qq
+          - renren
+          - douban
+          - facebook
+          - twitter
+          - wechat
+      - name: bindInfo[unionid]
+        in: formData
+        description: 微信登录使用
+        type: string
+      - name: bindInfo[nickname]
+        in: formData
+        description: 第三方昵称
+        type: string      
+      description: 绑定第三方账号
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/userInfo'
+  /user/unbind:
+    post:
+      parameters:
+      - name: bindInfo[openId]
+        in: formData
+        description: 第三方绑定id
+        type: string
+      - name: bindInfo[type]
+        in: formData
+        description: 类型
+        type: string
+        enum:
+          - sina
+          - qq
+          - renren
+          - douban
+          - facebook
+          - twitter
+          - wechat
+      - name: bindInfo[unionid]
+        in: formData
+        description: 微信登录使用
+        type: string
+      - name: bindInfo[nickname]
+        in: formData
+        description: 第三方昵称
+        type: string      
+      description: 解绑第三方账号
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/userInfo'
+definitions:
+  ERROR:
+    type: object
+    required:
+      - code
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+  ACCOUNT:
+    type: object
+    required:
+      - openId
+    properties:
+      openId:
+        type: string
+      type:
+        type: string
+        enum:
+          - sina
+          - qq
+          - renren
+          - douban
+          - facebook
+          - twitter
+          - wechat
+      unionid:
+        type: string
+        description: 微信使用的unionid
+      nickname:
+        type: string
+
+  USER:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: integer
+      isAdmin:
+        type: boolean
+      name:
+        type: string
+      email:
+        type: string
+      status:
+        type: string
+        description: 用户激活状态
+        enum:
+         - active
+         - N-active
+      createTime:
+        type: integer
+      isDefaultAvatar:
+        type: boolean
+      avatar:
+        type: string
+      sex:
+        type: string
+        enum:
+          - men
+          - women
+          - secret
+      birthday:
+        type: string
+      language:
+        type: string
+        enum:
+          - cn
+          - en
+      mobile:
+        type: string
+      introduce:
+        type: string
+      isSubscribingNewsletter:
+        type: integer
+        enum:
+          - 0
+          - 1
+      location:
+        type: string
+      thirdPartyAccounts:
+        type: array
+        items:
+          $ref: '#/definitions/ACCOUNT'
+        
+  
+  
+  userInfo :
+    type: object
+    required : 
+      - result
+    properties:
+      result:
+        $ref: '#/definitions/ERROR'
+      userInfo:
+        $ref: '#/definitions/USER'
+  loginInfo :
+    type: object
+    required : 
+      - result
+      - token
+    properties:
+      result:
+        $ref: '#/definitions/ERROR'
+      userInfo:
+        $ref: '#/definitions/USER'
+      token:
+        type: string
+  result :
+    type: object
+    required : 
+      - result
+    properties:
+      result:
+        $ref: '#/definitions/ERROR'
+  
