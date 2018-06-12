@@ -10,4 +10,17 @@ layout: default
 </div>
 {{ content }}
 
-{% include disqus.html %}
+<div id="container"></div>
+<link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">
+<script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
+<script>
+var gitment = new Gitment({
+  owner: 'xuanyan',
+  repo: 'xuanyan.github.com',
+  oauth: {
+    client_id: '3a9232bc8001c52e75c6',
+    client_secret: '010b1a337f1a2aded29ed6d7c7e743cb74e923b5',
+  },
+})
+gitment.render('container')
+</script>
