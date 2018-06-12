@@ -11,22 +11,9 @@ description: "Personal blog of XuanYan, in which he writes about web development
 {{ post.excerpt }}
 <ul class="nav nav-pills" role="tablist">
   <li role="presentation"><a href="{{ post.url }}"><span class="glyphicon glyphicon-plus"></span>Read More</a></li>
-  <li role="presentation"><a href="http://xuanyan.org{{ post.url }}#disqus_thread">Link</a></li>
+  <li role="presentation"><a href="http://xuanyan.org{{ post.url }}#container">Link</a></li>
   <li role="presentation" class="disabled"><a href="#">{{ post.date | date_to_long_string }}</a></li>
 </ul>
 {% endfor %}
 
 {% include pagination.html %}
-
-<script type="text/javascript">
-/* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-var disqus_shortname = 'xuanyan'; // required: replace example with your forum shortname
-
-/* * * DON'T EDIT BELOW THIS LINE * * */
-(function () {
-    var s = document.createElement('script'); s.async = true;
-    s.type = 'text/javascript';
-    s.src = '//' + disqus_shortname + '.disqus.com/count.js';
-    (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
-}());
-</script>
