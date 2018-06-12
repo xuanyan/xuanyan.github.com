@@ -11,7 +11,7 @@ description: "Personal blog of XuanYan, in which he writes about web development
 {{ post.excerpt }}
 <ul class="nav nav-pills" role="tablist">
   <li role="presentation"><a href="{{ post.url }}"><span class="glyphicon glyphicon-plus"></span>Read More</a></li>
-  <li role="presentation"><a href="http://xuanyan.org{{ post.url }}#container">Link</a></li>
+  <li role="presentation"><a href="http://xuanyan.org{{ post.url }}#container">Comments</a></li>
   <li role="presentation" class="disabled"><a href="#">{{ post.date | date_to_long_string }}</a></li>
 </ul>
 {% endfor %}
