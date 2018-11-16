@@ -6,14 +6,13 @@ title: RedBeanPHP重连数据库的方法
 
 <p>在最近使用时，数据库长时间连接会造成超时，RedBeanPHP 没有提供 reconnect，重新setup和addDatabase均会报错。</p>
 
-<p>从源码中发现数据库连接保持在 \RedBeanPHP\Facadea::$toolboxes 中，直接unset掉，重新连接，大致的代码是这样的：</p>
+<p>从源码中发现数据库连接保持在 <code>\RedBeanPHP\Facadea::$toolboxes</code> 中，发现这个变量是public的。直接unset掉，重新连接，大致的代码是这样的：</p>
 
 <!-- more -->
 
 <pre>
 	
 public function reConnect() {
-	echo "\ndb reconnecting...\n";
 	unset(Facade::$toolboxes['default']);
 	unset(Facade::$toolboxes['ugc']);
 	unset(Facade::$toolboxes['dealmoon']);
