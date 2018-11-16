@@ -1,0 +1,26 @@
+---
+layout: post
+title: RedBeanPHP重连数据库的方法
+---
+<p>RedBeanPHP一直是我比较喜欢的一个PHP ORM。在进行一些数据库的转换时，我一般都会首选使用它。</p>
+
+<p>在最近使用时，数据库长时间连接会造成超时，RedBeanPHP 没有提供 reconnect，重新setup和addDatabase均会报错。</p>
+
+<p>从源码中发现数据库连接保持在 \RedBeanPHP\Facadea::$toolboxes 中，直接unset掉，重新连接，大致的代码是这样的：</p>
+
+<!-- more -->
+
+<pre>
+	
+public function reConnect() {
+	echo "\ndb reconnecting...\n";
+	unset(Facade::$toolboxes['default']);
+	unset(Facade::$toolboxes['ugc']);
+	unset(Facade::$toolboxes['dealmoon']);
+
+	R::setup(getenv("DB_DSN"), getenv("DB_USER"), getenv("DB_PASS"));
+	R::addDatabase( 'ugc', getenv("UGC_DSN"), getenv("UGC_DB_USER"), getenv("UGC_DB_PASS"));
+	R::addDatabase( 'dealmoon', getenv("DEALMOON_DSN"), getenv("DEALMOON_DB_USER"), getenv("DEALMOON_DB_PASS"));
+}
+
+</pre>
