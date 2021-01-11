@@ -2,5 +2,5 @@ permalink: /:year/:month/:title.html
 paginate: 5
 paginate_path: "/page:num"
 excerpt_separator: "<!-- more -->"
-cdn_domain: http://xuanyan.org
+cdn_domain: https://xuanyan.org
 theme: jekyll-theme-slate
