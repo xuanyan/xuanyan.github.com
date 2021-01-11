@@ -4,9 +4,9 @@ layout: nil
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
  <title>Xuan Yan</title>
- <link href="http://xuanyan.org/atom.xml" rel="self"/>
+ <link href="https://xuanyan.org/atom.xml" rel="self"/>
  <updated>{{ site.time | date_to_xmlschema }}</updated>
- <id>http://xuanyan.org</id>
+ <id>https://xuanyan.org</id>
  <author>
    <name>Xuan Yan</name>
    <email>xuanyan@me.com</email>
