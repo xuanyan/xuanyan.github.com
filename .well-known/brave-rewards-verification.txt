@@ -1,0 +1,4 @@
+This is a Brave Rewards publisher verification file.
+
+Domain: xuanyan.org
+Token: 67667b87c012291e69ee684fdfe5f7feb65a4a324bbeab25e3003a0e76586fda
