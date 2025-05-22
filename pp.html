@@ -11,20 +11,34 @@
 
   </head>
   <body>
-  <p>口令： <input type="text" />    </p>
-  <p> <button style="width:200px;height: 120px;" id="gen">生成</button></p>
-  
+  <p>口令： <input type="text" id="code"/>    </p>
+  <p> <button style="width:200px;height: 100px;" id="gen">生成</button></p>
+    <p id="tip" style="color: blue"></p>
     <p>地址 : <span id="ip"></span>  <button onclick="copyText('ip')">复制</button>  </p>
     <p>端口 : <span id="port"></span>  <button onclick="copyText('port')">复制</button> </p>
   <script>
+  var lock = false;
     $('#gen').click(function(){
-      $.get('https://clientapi.zett.dev.ecnative.cn/test', function(result){
+    var text = $(this).text();
+    if (text == '生成中....') {
+    	return;
+    }
+      var code = $('#code').val();
+      if (!code) {
+      	alert("请输入口令");
+      	return;
+      }
+      	$(this).text('生成中....');
+      $.get('http://127.0.0.1:8080/test?code='+code, function(result){
+      	$('#gen').text('生成');
       	if (result.code != 0) {
-      	  alert(result.data.ip);
+      	  alert(result.message);
       	  return;
       	}
       	$('#ip').text(result.data.ip);
 		$('#port').text(result.data.port);
+		var text = result.data.prov + '-' + result.data.city + ' 过期时间：' + result.data.expire;
+		$('#tip').text(text);
       });
     });
 
