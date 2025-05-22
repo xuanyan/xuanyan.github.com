@@ -6,12 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>--test---</title>
 
-    <script src="{{ site.cdn_domain }}/vendor/jquery/jquery.min.js"></script>
+    <script src="/vendor/jquery/jquery.min.js"></script>
 
 
   </head>
   <body>
   <p>口令： <input type="text" />    </p>
-  <p> <button style="width:200px">生成</button></p>
+  <p> <button style="width:200px;height: 150px;">生成</button></p>
+  <script>
+    $('button').click(function(){
+      $.get('https://clientapi.zett.dev.ecnative.cn/test', function(result){
+        alert(result.data);
+      });
+    });
+  </script>
 </body>
 </html>
