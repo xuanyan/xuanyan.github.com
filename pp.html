@@ -29,7 +29,7 @@
       	return;
       }
       	$(this).text('生成中....');
-      $.get('http://127.0.0.1:8080/test?code='+code, function(result){
+      $.get('https://clientapi.zett.dev.ecnative.cn/test?code='+code, function(result){
       	$('#gen').text('生成');
       	if (result.code != 0) {
       	  alert(result.message);
