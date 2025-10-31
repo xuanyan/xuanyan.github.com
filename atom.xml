@@ -4,17 +4,17 @@ layout: nil
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
  <title>Xuan Yan</title>
- <link href="https://xuanyan.org/atom.xml" rel="self"/>
+ <link href="https://out-man.top/atom.xml" rel="self"/>
  <updated>{{ site.time | date_to_xmlschema }}</updated>
- <id>https://xuanyan.org</id>
+ <id>https://out-man.top</id>
  <author>
    <name>Xuan Yan</name>
    <email>xuanyan@me.com</email>
  </author>
  {% for post in site.posts limit:10 %}
  <entry>
-   <id>https://xuanyan.org{{ post.url }}</id>
-   <link href="https://xuanyan.org{{ post.url }}"/>
+   <id>https://out-man.top{{ post.url }}</id>
+   <link href="https://out-man.top{{ post.url }}"/>
    <title>{{ post.title }}</title>
    <author>
      <name>Xuan Yan</name>
