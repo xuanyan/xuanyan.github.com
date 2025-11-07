@@ -5,3 +5,5 @@
 # cdn_domain: https://out-man.top
 # theme: jekyll-theme-slate
 remote_theme: "jekyll/minima@1e8a445"
+minima:
+  show_excerpts: true
