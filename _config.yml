@@ -7,3 +7,7 @@
 remote_theme: "jekyll/minima@1e8a445"
 minima:
   show_excerpts: true
+  social_links:
+  - title: folk me on GitHub
+    icon: github
+    url: "https://github.com/xuanyan"
