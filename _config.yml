@@ -1,6 +1,7 @@
-permalink: /:year/:month/:title.html
-paginate: 5
-paginate_path: "/page:num"
-excerpt_separator: "<!-- more -->"
-cdn_domain: https://out-man.top
-theme: jekyll-theme-slate
+# permalink: /:year/:month/:title.html
+# paginate: 5
+# paginate_path: "/page:num"
+# excerpt_separator: "<!-- more -->"
+# cdn_domain: https://out-man.top
+# theme: jekyll-theme-slate
+remote_theme: "jekyll/minima@1e8a445"
