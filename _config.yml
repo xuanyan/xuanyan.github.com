@@ -3,6 +3,7 @@ excerpt_separator: "<!-- more -->"
 remote_theme: "jekyll/minima"
 plugins:
   - jekyll-paginate
+  - jekyll-feed
 minima:
   show_excerpts: true
   hide_site_feed_link: true
