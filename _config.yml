@@ -1,15 +1,11 @@
-# permalink: /:year/:month/:title.html
-# paginate_path: "/page:num/"
 paginate: 5
 excerpt_separator: "<!-- more -->"
-# cdn_domain: https://out-man.top
-# theme: jekyll-theme-slate
 remote_theme: "jekyll/minima"
 plugins:
   - jekyll-paginate
 minima:
   show_excerpts: true
-  hide_site_feed_link: true
+  hide_site_feed_link: false
   social_links:
   - title: folk me on GitHub
     icon: github
