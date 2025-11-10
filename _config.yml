@@ -5,7 +5,7 @@ plugins:
   - jekyll-paginate
 minima:
   show_excerpts: true
-  hide_site_feed_link: false
+  hide_site_feed_link: true
   social_links:
   - title: folk me on GitHub
     icon: github
