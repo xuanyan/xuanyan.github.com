@@ -1,3 +1,10 @@
+title: 隔壁宣哥
+author:
+  name: xuanyan
+  email: xuanyan@icloud.com
+description: >
+  I have no regret in my life! 
+  I remember that one day I ran under the setting sun, that's the youth which have already passed.
 paginate: 5
 excerpt_separator: "<!-- more -->"
 remote_theme: "jekyll/minima"
