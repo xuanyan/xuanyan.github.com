@@ -85,7 +85,17 @@ systemctl status minio
 
 #给匿名用户只读权限
 
-./mc anonymous set download minio/demo
+# 这是以前我的做法，但是不好，因为  download 预设策略里面会包含 ListBucket ，默认访问存储桶会列出文件列表
+#./mc anonymous set download minio/demo
+
+./mc anonymous set-json /dev/stdin minio/demo <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::demo/*"]}
+    ]
+}
+EOF
 
 #创建用户 demo-write-user 
 
