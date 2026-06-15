@@ -39,6 +39,7 @@ Description=Minio Service
 [Service]
 Environment="MINIO_ROOT_USER=minio"
 Environment="MINIO_ROOT_PASSWORD=minio123456"
+Environment="MINIO_BROWSER_REDIRECT=off"
 ExecStart=/home/minio/minio server /home/minio/data --console-address ":9001" --address ":9000"
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s QUIT $MAINPID
@@ -88,14 +89,22 @@ systemctl status minio
 # 这是以前我的做法，但是不好，因为  download 预设策略里面会包含 ListBucket ，默认访问存储桶会列出文件列表
 #./mc anonymous set download minio/demo
 
-./mc anonymous set-json /dev/stdin minio/demo <<EOF
+cat > anon_policy.json <<'EOF'
 {
     "Version": "2012-10-17",
     "Statement": [
-        {"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::demo/*"]}
+        {
+            "Effect":"Allow",
+            "Principal":{"AWS":["*"]},
+            "Action":["s3:GetObject"],
+            "Resource":["arn:aws:s3:::demo/*"]
+        }
     ]
 }
 EOF
+
+./mc anonymous set-json anon_policy.json demo/partner
+
 
 #创建用户 demo-write-user 
 
