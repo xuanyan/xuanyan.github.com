@@ -43,7 +43,8 @@ Environment="MINIO_BROWSER_REDIRECT=off"
 ExecStart=/home/minio/minio server /home/minio/data --console-address ":9001" --address ":9000"
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s QUIT $MAINPID
-StandardOutput=/home/minio/minio.log
+StandardOutput=append:/home/minio/minio.log
+StandardError=append:/home/minio/minio.log
 PrivateTmp=true
 
 [Install]
@@ -63,7 +64,7 @@ systemctl start minio
 systemctl enable minio
 
 #停止服务
-systemctl strop minio
+systemctl stop minio
 
 #查看服务状态
 systemctl status minio
