@@ -74,7 +74,7 @@ workspace 可大可小。有人只有几个配置文件，有人扔了半个仓�
 - **不做每用户 Redis ACL。** 开放注册的量不可控，为每个用户维护一套元数据 ACL，运营成本和出错面都很大。隔离靠路径约定和挂载白名单，不靠「每人一把 Redis 钥匙」。
 - **hostPath 必须落在 `/data/shared/` 白名单下。** 控制面再怎么拼路径，最终绑进 MicroVM 的宿主机路径都不能逃出这块前缀，避免把节点上别的目录挂进去。
 
-控制面负责：鉴权、拼路径、ensure 目录、向 CubeSandbox 下发 Host Mount、记录 sandbox 与 workspace 的对应关系。沙箱负责：在 `/workspace` 里干活。两边职责不交叉。
+控制面负责：鉴权、拼路径、建目录、向 CubeSandbox 下发 Host Mount、记录 sandbox 与 workspace 的对应关系。沙箱负责：在 `/workspace` 里干活。两边职责不交叉。
 
 ## 路径与会话模型
 
@@ -89,7 +89,7 @@ workspace 可大可小。有人只有几个配置文件，有人扔了半个仓�
 
 三个动作，对应三种生命周期操作：
 
-**创建。** 控制面按 tenant / user / workspace 建好目录（没有就建，有就复用），拉起一个新沙箱，Host Mount 把该目录 bind 到沙箱的 `/workspace`。返回 `sandbox_id` 给调用方当「这一次执行环境」的句柄；持久身份仍然是 `workspace_id`。
+**创建。** 控制面**新生成**一个 `workspace_id`（UUID），再按 `/data/shared/jfs/{tenant_id}/{user_id}/{workspace_id}` mkdir，拉起沙箱，Host Mount 到 `/workspace`。返回 `workspace_id` 和 `sandbox_id`，Agent 只把前者存下来。创建不做「目录有了就复用」——那是 restore 的事。
 
 **恢复。** 先校验这个 workspace 是否属于当前租户和用户，再 ensure 目录还在（被误删就重建空目录，而不是悄悄挂到别人的路径上），然后**新开一个沙箱**，挂的还是同一条目录。恢复不是唤醒旧虚拟机，而是「短命计算」重新贴上「长寿目录」。
 
@@ -99,29 +99,34 @@ workspace 可大可小。有人只有几个配置文件，有人扔了半个仓�
 
 ## API
 
-对 Agent 只暴露会话，不暴露挂载细节。鉴权用 Bearer，控制面在 token 里解析租户和用户，路径里的 `{tenant_id}` / `{user_id}` 不让调用方随便填。
+对 Agent 只暴露会话，不暴露挂载细节。鉴权用 Bearer，控制面从 token 里解析租户和用户，路径里的 `{tenant_id}` / `{user_id}` 不让调用方随便填。
 
-创建会话：
+约定写死一条：**创建请求不传、也不认 body 里的 `workspace_id`**。身份只从 Bearer 来；要用已经存在的目录，必须走 restore。
+
+**POST /v1/sessions（创建）**
+
+请求可以没有 body，或者给一个空 JSON `{}`——里面不要出现 `workspace_id`。控制面自己生成 UUID、建目录、再开沙箱。
 
 ```http
 POST /v1/sessions
 Authorization: Bearer <token>
 Content-Type: application/json
 
-{
-  "workspace_id": "ws_7f3a"
-}
+{}
 ```
 
 ```json
 {
+  "workspace_id": "7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34",
   "sandbox_id": "sb_91c2",
-  "workspace_id": "ws_7f3a",
+  "mount_path": "/workspace",
   "status": "running"
 }
 ```
 
-恢复会话（同一 workspace，新沙箱）：
+**POST /v1/sessions/restore**
+
+请求必传 `workspace_id`（还是上面那个 UUID）。校验归属之后，新开一个沙箱，挂回同一条目录。
 
 ```http
 POST /v1/sessions/restore
@@ -129,34 +134,29 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "workspace_id": "ws_7f3a"
+  "workspace_id": "7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34"
 }
 ```
 
 ```json
 {
+  "workspace_id": "7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34",
   "sandbox_id": "sb_a04e",
-  "workspace_id": "ws_7f3a",
+  "mount_path": "/workspace",
   "status": "running"
 }
 ```
 
-结束会话（只停沙箱）：
+**DELETE /v1/sessions/{sandbox_id}**
+
+只要 Authorization，没有 body。URL 里是本次 sandbox；目录靠 Agent 已经存下的 `workspace_id`，结束会话不删目录。成功是 **204**，没有响应体。
 
 ```http
 DELETE /v1/sessions/sb_a04e
 Authorization: Bearer <token>
 ```
 
-```json
-{
-  "sandbox_id": "sb_a04e",
-  "workspace_id": "ws_7f3a",
-  "status": "stopped"
-}
-```
-
-`sandbox_id` 出现在 URL 里，是因为停的是这一次计算；body 里的 `workspace_id` 才是存储身份。restore 故意不接收旧的 `sandbox_id`——旧沙箱可能已经没了，恢复只认目录。
+restore 故意不收旧的 `sandbox_id`——旧沙箱可能已经没了，恢复只认目录。
 
 ## 初期与演进
 
