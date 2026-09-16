@@ -157,9 +157,9 @@ Authorization: Bearer <token>
 
 restore 不收旧的 `sandbox_id`。旧沙箱可能已经没了，恢复只认目录。
 
-## 为什么还要 Files 面
+## Files 面
 
-实际用的时候，用户未必先开沙箱。先看这个空间占了多大、里面有哪些文件、下载一份、预览一段视频（拖进度那种）、iframe 里看 PDF、给文件改个名——这些都不该绑在「沙箱必须在跑」。
+Files 管目录，不必先开沙箱。先看这个空间占了多大、里面有哪些文件、下载一份、预览一段视频（拖进度那种）、iframe 里看 PDF、给文件改个名——这些都不该绑在「沙箱必须在跑」。
 
 Sessions 管算力：开、恢复、关。Files 管目录：列表、读内容、改名。两边共用同一条路径 `/data/shared/jfs/{tenant_id}/{user_id}/{workspace_id}`。没开沙箱，控制面照样打这条 JuiceFS 挂载路径。
 
