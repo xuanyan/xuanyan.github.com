@@ -98,9 +98,9 @@ hostPath 必须落在 `/data/shared/` 白名单下。控制面再怎么拼路径
 
 ## API
 
-对 Agent 只暴露会话，不暴露挂载细节。鉴权用 Bearer，控制面从 token 里解析租户和用户，路径里的 `{tenant_id}` / `{user_id}` 不让调用方随便填。
+对 Agent 只暴露会话，不暴露挂载细节。这些 JSON 接口 Bearer 就能调；控制面从身份里解析租户和用户，路径里的 `{tenant_id}` / `{user_id}` 不让调用方随便填。浏览器预览、下载走 Cookie，后面单独说。
 
-创建请求不传、也不认 body 里的 `workspace_id`。身份只从 Bearer 来；要用已经存在的目录，走 restore。
+创建请求不传、也不认 body 里的 `workspace_id`。租户和用户只从鉴权里取，不从 body 里填；要用已经存在的目录，走 restore。
 
 **POST /v1/sessions（创建）**
 
@@ -148,7 +148,7 @@ Content-Type: application/json
 
 **DELETE /v1/sessions/{sandbox_id}**
 
-只要 Authorization，没有 body。URL 里是本次 sandbox；目录靠 Agent 已经存下的 `workspace_id`，结束会话不删目录。成功是 **204**，没有响应体。
+只要鉴权，没有 body。URL 里是本次 sandbox；目录靠 Agent 已经存下的 `workspace_id`，结束会话不删目录。成功是 **204**，没有响应体。
 
 ```http
 DELETE /v1/sessions/sb_a04e
@@ -157,8 +157,69 @@ Authorization: Bearer <token>
 
 restore 不收旧的 `sandbox_id`。旧沙箱可能已经没了，恢复只认目录。
 
+## 为什么还要 Files 面
+
+实际用的时候，用户未必先开沙箱。先看这个空间占了多大、里面有哪些文件、下载一份、预览一段视频（拖进度那种）、iframe 里看 PDF、给文件改个名——这些都不该绑在「沙箱必须在跑」。
+
+Sessions 管算力：开、恢复、关。Files 管目录：列表、读内容、改名。两边共用同一条路径 `/data/shared/jfs/{tenant_id}/{user_id}/{workspace_id}`。没开沙箱，控制面照样打这条 JuiceFS 挂载路径。
+
+## Files API
+
+控制面直接打挂载上的目录，不经过沙箱。`path` 都相对 workspace 根，带 `..` 的直接拒。沙箱同时在写、Files 同时在读，接受最终一致就行。目录大小别每次列表都递归 du 一遍。
+
+**GET /v1/workspaces/{workspace_id}/stats**
+
+整个目录用了多少空间，返回 `bytes_used` 这类数字。目录很大时可以先回 calculating，别把接口卡住。列表不要顺手算这个。
+
+**GET /v1/workspaces/{workspace_id}/files**
+
+列目录，分页。query 里 `path`、`limit`、`cursor`。`path` 相对根。
+
+```http
+GET /v1/workspaces/7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34/files?path=/src&limit=50
+Authorization: Bearer <token>
+```
+
+**GET /v1/workspaces/{workspace_id}/files/content**
+
+单文件流。**必须支持 Range / 206**——视频拖进度、大文件分段下，都靠这个。`Content-Disposition`：预览用 inline，下载用 attachment；PDF 丢进 iframe 预览走 inline。目录打包下载一期可后做。
+
+浏览器 `<video src>`、iframe 塞 PDF 很难带 Authorization，这条走 Cookie，例子在下一节。
+
+**POST /v1/workspaces/{workspace_id}/files/rename**
+
+body 里 `from` / `to`，必须在同一个 workspace。目标已存在就 409。
+
+```http
+POST /v1/workspaces/7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34/files/rename
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "from": "/draft.md",
+  "to": "/readme.md"
+}
+```
+
+## 鉴权：Cookie
+
+浏览器里 `<video src>`、iframe 塞 PDF，**很难把 Authorization 头带上**，内容流用 **HttpOnly Cookie** 更合适。
+
+建议双通道：
+
+- 内容流（播 / 预览 / 下载）：Cookie
+- JSON 管理 API（Sessions、Files 元数据）：Cookie 与 Bearer 都认
+
+Cookie 本身：HttpOnly、Secure、SameSite 用 Lax 或 Strict，路径能收窄就收窄，有效期短一点。写操作要防 CSRF。外链分享走短时签名 URL，别把长期 token 挂在 query 上。同站部署最省事；跨站 iframe 可能还是得短时签名 URL。
+
+```http
+GET /v1/workspaces/{id}/files/content?path=/a.mp4
+Cookie: session=...
+Range: bytes=0-1023
+```
+
 ## 初期与演进
 
-一期范围：单节点挂一份 JuiceFS；控制面和 CubeSandbox 可以同机、必须分进程；Host Mount 只绑定 `/data/shared/` 下的路径；会话按「建目录 / 新开沙箱 / 只关沙箱」走通。开放注册先靠目录按需创建、沙箱用完即毁来消化流量，不上复杂的多租户存储 ACL。
+一期范围：单节点挂一份 JuiceFS；控制面和 CubeSandbox 可以同机、必须分进程；Host Mount 只绑定 `/data/shared/` 下的路径；会话按「建目录 / 新开沙箱 / 只关沙箱」走通。开放注册先靠目录按需创建、沙箱用完即毁来消化流量，不上复杂的多租户存储 ACL。Files 面先做列表、单文件 Range 下载/预览、重命名、归属校验、Cookie；异步 stats、目录打包、更细的预览策略往后排。
 
 这一期沙箱还不能在集群里漂移，挂载还绑在「这台节点已经挂了 JuiceFS」这个前提上。量上来、要调度、要把控制面和计算节点拆开之后，再上 Volume Plugin：多节点各自挂，按调度把 MicroVM 和对应目录放到一起。
