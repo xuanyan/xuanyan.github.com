@@ -95,9 +95,9 @@ hostPath 必须落在 `/data/shared/` 白名单下。控制面再怎么拼路径
 
 **创建。** 控制面**新生成**一个 `workspace_id`（UUID），再按 `/data/shared/jfs/{user_id}/{workspace_id}` mkdir，拉起沙箱，Host Mount 到 `/workspace`。返回 `workspace_id`、`sandbox_id`、`mount_path`、`status`。创建不打快照，响应里也不强塞 `snapshot_id`。创建不做「目录有了就复用」——那是 restore 的事。
 
-**恢复。** 先校验这个 workspace 是否属于当前用户，再 ensure 目录还在（被误删就重建空目录，别悄悄挂到别人的路径上），然后**新开一个沙箱**，挂的还是同一条目录。`snapshot_id` 可选：有且有效，就 FromSnap(`snapshot_id`) 再挂同一条 workspace 路径，环境跟着回来，拿到新的 `sandbox_id`；没传、或快照不行，就普通冷启动再挂 workspace，**文件不丢**。不是唤醒旧虚拟机，是短命计算重新贴上长寿目录。
+**恢复。** 有 `snapshot_id` 就够了，请求不必再传 `workspace_id`：FromSnap 把环境拉回来，Host Mount 用快照里记下的配置挂回原来那条路径。控制面靠 DELETE 结束时的记账，校验这张快照是不是你的；响应里照样把解析出来的 `workspace_id` 给你。没 `snapshot_id` 就必须带 `workspace_id`：先校验这个 workspace 是否属于当前用户，再 ensure 目录还在（被误删就重建空目录，别悄悄挂到别人的路径上），普通冷启动再挂上去，**文件不丢**。两个都传也行，以 snapshot 为准，并核对是不是这个 workspace 的（对不上 409）。两个都不传，400。不是唤醒旧虚拟机，是短命计算重新贴上长寿目录。
 
-**结束。** 沙箱还在的话，先 `create_snapshot`，按 `workspace_id` 只留最新一张、更早的删掉，再销毁沙箱。目录不动；`/data/shared/jfs/.../workspace_id` 继续留着。快照打失败也照关会话，`snapshot_id` 可以是 null。AI 可以记下这次的 `snapshot_id`，下次 restore 带上；不存也行，下次只靠 `workspace_id` 冷恢复。
+**结束。** 沙箱还在的话，先 `create_snapshot`，按 `workspace_id` 只留最新一张、更早的删掉，再销毁沙箱。目录不动；`/data/shared/jfs/.../workspace_id` 继续留着。快照打失败也照关会话，`snapshot_id` 可以是 null。AI 可以记下这次的 `snapshot_id`，下次 restore 只带它就能暖恢复；不存也行，下次只靠 `workspace_id` 冷恢复。
 
 目录长寿，沙箱短寿。`workspace_id` 是文件侧的稳定句柄；`snapshot_id` 是环境侧的可选项；`sandbox_id` 只覆盖这一次运行。
 
@@ -130,7 +130,9 @@ Content-Type: application/json
 
 **POST /v1/sessions/restore**
 
-请求必传 `workspace_id`。`snapshot_id` 可选。校验归属之后，新开一个沙箱，挂回同一条目录。有且有效：FromSnap(`snapshot_id`) 再挂同一条 workspace 路径，环境恢复，得到新的 `sandbox_id`；没传或快照失败：普通冷启动再挂 workspace，文件不丢。
+有 `snapshot_id` 就走暖恢复，body 里不必再塞 `workspace_id`。FromSnap 之后，用快照里的 Host Mount 配置挂回原路径；归属靠 DELETE 时记下的 snapshot 记账来校验。响应仍返回解析出的 `workspace_id`。没 `snapshot_id` 就必须传 `workspace_id`，冷启动再挂目录。两个都传可以，以 snapshot 为准，并校验属于该 workspace（不一致 409）。两个都不传，400。
+
+只传 `snapshot_id` 的暖恢复：
 
 ```http
 POST /v1/sessions/restore
@@ -138,12 +140,11 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "workspace_id": "7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34",
   "snapshot_id": "snap_3f1c"
 }
 ```
 
-不传 `snapshot_id` 也行，body 只留 `workspace_id` 就是冷恢复：
+只传 `workspace_id` 的冷恢复：
 
 ```json
 {
@@ -151,7 +152,7 @@ Content-Type: application/json
 }
 ```
 
-响应是新沙箱，不强塞 `snapshot_id`：
+响应是新沙箱，不强塞 `snapshot_id`，但会带回解析出的 `workspace_id`：
 
 ```json
 {
@@ -166,7 +167,7 @@ Content-Type: application/json
 
 只要鉴权，没有 body。URL 里是本次 sandbox。沙箱还在：`create_snapshot` → 按 `workspace_id` 只留最新快照、删更早的 → 再销毁沙箱。目录不删。成功是 **200**，带 `workspace_id`、`sandbox_id`、`snapshot_id`、`status`（比如 `stopped`）。
 
-AI 可选存 `snapshot_id`；不存，下次 restore 只靠 `workspace_id` 冷恢复。快照失败会话仍关，`snapshot_id` 可为 null。
+AI 可选存 `snapshot_id`；下次 restore 带上就能暖恢复，不必再传 `workspace_id`。不存也行，下次只靠 `workspace_id` 冷恢复。快照失败会话仍关，`snapshot_id` 可为 null。
 
 ```http
 DELETE /v1/sessions/sb_a04e
