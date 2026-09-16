@@ -9,7 +9,7 @@ title: AI 沙箱存算分离方案
 
 ## 背景
 
-沙箱是短命的。进去有个工作目录，Agent 读写文件、跑命令，会话结束环境就拆掉。用户又希望下次还能接着干——仓库、草稿、中间产物都还在。
+沙箱是短命的。进去有个工作目录，Agent 读写文件、跑命令，会话结束沙箱就拆掉。用户又希望下次还能接着干——仓库、草稿、中间产物都还在。
 
 计算这边：沙箱开得快、关得干脆，坏了重建即可。存储这边：workspace 要长期活着，还能换盘、换机、换容量。别把文件堆在沙箱本地盘上，沙箱一毁数据就没了。
 
@@ -42,7 +42,7 @@ workspace 可大可小。有人几个配置文件，有人半个仓库加构建�
 控制面和沙箱必须分开，哪怕暂时挤在同一台机器上。同机只是起步，不是把密钥和用户代码塞进同一个进程。
 
 ```
-  Agent (只拿 workspace_id)
+  Agent（必存 workspace_id；snapshot_id 可选）
            |
            |  HTTPS + Bearer
            v
@@ -50,7 +50,7 @@ workspace 可大可小。有人几个配置文件，有人半个仓库加构建�
      |  控制面   |          Redis / MinIO 密钥停在这里
      +-----------+
            |
-           |  建目录 / 开停沙箱 / Host Mount
+           |  建目录 / 开停沙箱 / 快照 / Host Mount
            v
      +-------------------+
      |  CubeSandbox      |
@@ -73,7 +73,7 @@ workspace 可大可小。有人几个配置文件，有人半个仓库加构建�
 
 hostPath 必须落在 `/data/shared/` 白名单下。控制面再怎么拼路径，最终绑进 MicroVM 的宿主机路径都不能逃出这块前缀，免得把节点上别的目录挂进去。
 
-控制面管鉴权、拼路径、建目录、向 CubeSandbox 下发 Host Mount、记录 sandbox 与 workspace 的对应关系。沙箱就在 `/workspace` 里干活。
+控制面管鉴权、拼路径、建目录、向 CubeSandbox 下发 Host Mount 和快照、记录 sandbox 与 workspace 的对应关系。沙箱就在 `/workspace` 里干活。
 
 ## 路径与会话模型
 
@@ -84,27 +84,32 @@ hostPath 必须落在 `/data/shared/` 白名单下。控制面再怎么拼路径
 沙箱内: /workspace
 ```
 
-`/data/shared/` 是 JuiceFS 在节点上的挂载前缀，也是 hostPath 白名单。再往下用用户、workspace 切开，目录即隔离单元。初期租户通常就一个，目录不必再套 tenant。Agent **只存 `workspace_id`**，不要去记沙箱 ID，也不要去拼宿主机路径——那些是控制面的事。
+`/data/shared/` 是 JuiceFS 在节点上的挂载前缀，也是 hostPath 白名单。再往下用用户、workspace 切开，目录即隔离单元。初期租户通常就一个，目录不必再套 tenant。Agent 不要去记沙箱 ID，也不要去拼宿主机路径——那些是控制面的事。
+
+两条平行线，别搅在一块：
+
+- **`workspace_id`**：JuiceFS 上的文件，Host Mount 进沙箱。Agent 必存。
+- **`snapshot_id`**：AI 运行时环境（会话里装的软件之类），Cube 快照。可选，AI 可以不用。
 
 三个动作：
 
-**创建。** 控制面**新生成**一个 `workspace_id`（UUID），再按 `/data/shared/jfs/{user_id}/{workspace_id}` mkdir，拉起沙箱，Host Mount 到 `/workspace`。返回 `workspace_id` 和 `sandbox_id`，Agent 只把前者存下来。创建不做「目录有了就复用」——那是 restore 的事。
+**创建。** 控制面**新生成**一个 `workspace_id`（UUID），再按 `/data/shared/jfs/{user_id}/{workspace_id}` mkdir，拉起沙箱，Host Mount 到 `/workspace`。返回 `workspace_id`、`sandbox_id`、`mount_path`、`status`。创建不打快照，响应里也不强塞 `snapshot_id`。创建不做「目录有了就复用」——那是 restore 的事。
 
-**恢复。** 先校验这个 workspace 是否属于当前用户，再 ensure 目录还在（被误删就重建空目录，别悄悄挂到别人的路径上），然后**新开一个沙箱**，挂的还是同一条目录。不是唤醒旧虚拟机，是短命计算重新贴上长寿目录。
+**恢复。** 先校验这个 workspace 是否属于当前用户，再 ensure 目录还在（被误删就重建空目录，别悄悄挂到别人的路径上），然后**新开一个沙箱**，挂的还是同一条目录。`snapshot_id` 可选：有且有效，就 FromSnap(`snapshot_id`) 再挂同一条 workspace 路径，环境跟着回来，拿到新的 `sandbox_id`；没传、或快照不行，就普通冷启动再挂 workspace，**文件不丢**。不是唤醒旧虚拟机，是短命计算重新贴上长寿目录。
 
-**结束。** 只关沙箱，不动目录。进程拆掉、MicroVM 回收；`/data/shared/jfs/.../workspace_id` 继续留着，下次 restore 还能挂上。
+**结束。** 沙箱还在的话，先 `create_snapshot`，按 `workspace_id` 只留最新一张、更早的删掉，再销毁沙箱。目录不动；`/data/shared/jfs/.../workspace_id` 继续留着。快照打失败也照关会话，`snapshot_id` 可以是 null。AI 可以记下这次的 `snapshot_id`，下次 restore 带上；不存也行，下次只靠 `workspace_id` 冷恢复。
 
-目录长寿，沙箱短寿。`workspace_id` 是用户侧的稳定句柄；`sandbox_id` 只覆盖这一次运行。
+目录长寿，沙箱短寿。`workspace_id` 是文件侧的稳定句柄；`snapshot_id` 是环境侧的可选项；`sandbox_id` 只覆盖这一次运行。
 
 ## API
 
 对 Agent 只暴露会话，不暴露挂载细节。这些 JSON 接口 Bearer 就能调；控制面从身份里解析用户，路径里的 `{user_id}` 不让调用方随便填。浏览器预览、下载走 Cookie，后面单独说。
 
-创建请求不传、也不认 body 里的 `workspace_id`。用户只从鉴权里取，不从 body 里填；要用已经存在的目录，走 restore。
+创建请求不传、也不认 body 里的 `workspace_id`。用户只从鉴权里取，不从 body 里填；要用已经存在的目录，走 restore。创建不打快照。
 
 **POST /v1/sessions（创建）**
 
-请求可以没有 body，或者给一个空 JSON `{}`——里面不要出现 `workspace_id`。控制面自己生成 UUID、建目录、再开沙箱。
+请求可以没有 body，或者给一个空 JSON `{}`——里面不要出现 `workspace_id`。控制面自己生成 UUID、建目录、再开沙箱。返回 `workspace_id`、`sandbox_id`、`mount_path`、`status`，不要强制 `snapshot_id`。
 
 ```http
 POST /v1/sessions
@@ -125,7 +130,7 @@ Content-Type: application/json
 
 **POST /v1/sessions/restore**
 
-请求必传 `workspace_id`（还是上面那个 UUID）。校验归属之后，新开一个沙箱，挂回同一条目录。
+请求必传 `workspace_id`。`snapshot_id` 可选。校验归属之后，新开一个沙箱，挂回同一条目录。有且有效：FromSnap(`snapshot_id`) 再挂同一条 workspace 路径，环境恢复，得到新的 `sandbox_id`；没传或快照失败：普通冷启动再挂 workspace，文件不丢。
 
 ```http
 POST /v1/sessions/restore
@@ -133,9 +138,20 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
+  "workspace_id": "7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34",
+  "snapshot_id": "snap_3f1c"
+}
+```
+
+不传 `snapshot_id` 也行，body 只留 `workspace_id` 就是冷恢复：
+
+```json
+{
   "workspace_id": "7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34"
 }
 ```
+
+响应是新沙箱，不强塞 `snapshot_id`：
 
 ```json
 {
@@ -148,20 +164,31 @@ Content-Type: application/json
 
 **DELETE /v1/sessions/{sandbox_id}**
 
-只要鉴权，没有 body。URL 里是本次 sandbox；目录靠 Agent 已经存下的 `workspace_id`，结束会话不删目录。成功是 **204**，没有响应体。
+只要鉴权，没有 body。URL 里是本次 sandbox。沙箱还在：`create_snapshot` → 按 `workspace_id` 只留最新快照、删更早的 → 再销毁沙箱。目录不删。成功是 **200**，带 `workspace_id`、`sandbox_id`、`snapshot_id`、`status`（比如 `stopped`）。
+
+AI 可选存 `snapshot_id`；不存，下次 restore 只靠 `workspace_id` 冷恢复。快照失败会话仍关，`snapshot_id` 可为 null。
 
 ```http
 DELETE /v1/sessions/sb_a04e
 Authorization: Bearer <token>
 ```
 
-restore 不收旧的 `sandbox_id`。旧沙箱可能已经没了，恢复只认目录。
+```json
+{
+  "workspace_id": "7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34",
+  "sandbox_id": "sb_a04e",
+  "snapshot_id": "snap_3f1c",
+  "status": "stopped"
+}
+```
+
+restore 不收旧的 `sandbox_id`。旧沙箱可能已经没了；文件认 `workspace_id`，环境认可选的 `snapshot_id`。
 
 ## Files 面
 
 Files 管目录，不必先开沙箱。先看这个空间占了多大、里面有哪些文件、下载一份、打包一个目录带走、预览一段视频（拖进度那种）、iframe 里看 PDF、给文件改个名——这些都不该绑在「沙箱必须在跑」。
 
-Sessions 管算力：开、恢复、关。Files 管目录：列表、读内容、打包下载、改名。两边共用同一条路径 `/data/shared/jfs/{user_id}/{workspace_id}`。没开沙箱，控制面照样打这条 JuiceFS 挂载路径。
+Sessions 管算力：开、恢复、关（结束时给运行时打一张 Cube 快照，AI 爱存不存）。Files 管目录：列表、读内容、打包下载、改名。两边共用同一条路径 `/data/shared/jfs/{user_id}/{workspace_id}`。没开沙箱，控制面照样打这条 JuiceFS 挂载路径。
 
 ## Files API
 
@@ -253,6 +280,6 @@ Range: bytes=0-1023
 
 ## 初期与演进
 
-一期范围：单节点挂一份 JuiceFS；控制面和 CubeSandbox 可以同机、必须分进程；Host Mount 只绑定 `/data/shared/` 下的路径；会话按「建目录 / 新开沙箱 / 只关沙箱」走通。开放注册先靠目录按需创建、沙箱用完即毁来消化流量，不上复杂的多租户存储 ACL。Files 面先做列表、单文件 Range 下载/预览、目录打包下载、重命名、归属校验、Cookie；异步 stats、更细的预览策略往后排。
+一期范围：单节点挂一份 JuiceFS；控制面和 CubeSandbox 可以同机、必须分进程；Host Mount 只绑定 `/data/shared/` 下的路径；会话按「建目录 / 新开沙箱 / 结束打快照再关」走通。开放注册先靠目录按需创建、沙箱用完即毁来消化流量，不上复杂的多租户存储 ACL。Files 面先做列表、单文件 Range 下载/预览、目录打包下载、重命名、归属校验、Cookie；异步 stats、更细的预览策略往后排。
 
 这一期沙箱还不能在集群里漂移，挂载还绑在「这台节点已经挂了 JuiceFS」这个前提上。量上来、要调度、要把控制面和计算节点拆开之后，再上 Volume Plugin：多节点各自挂，按调度把 MicroVM 和对应目录放到一起。
