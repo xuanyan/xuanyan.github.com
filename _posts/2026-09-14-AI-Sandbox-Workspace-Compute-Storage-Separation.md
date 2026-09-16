@@ -175,9 +175,33 @@ Sessions 管算力：开、恢复、关。Files 管目录：列表、读内容�
 
 列目录，分页。query 里 `path`、`limit`、`cursor`。`path` 相对根。
 
+`cursor` 是分页游标，不是编辑器 Cursor。第一页只传 `path`、`limit`；还有下一页的话，响应里带 `next_cursor`，下次请求把这个值放进 query 的 `cursor`。没有下一页，`next_cursor` 为空或不返回。
+
+响应 `entries` 每项至少有 `name`、`type`（`dir` 或 `file`）、`size`（目录可为 null）、`mtime`。默认排序：目录在前、文件在后；同类型按名字排。
+
 ```http
 GET /v1/workspaces/7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34/files?path=/src&limit=50
 Authorization: Bearer <token>
+```
+
+```json
+{
+  "entries": [
+    {
+      "name": "components",
+      "type": "dir",
+      "size": null,
+      "mtime": "2026-09-14T10:02:11Z"
+    },
+    {
+      "name": "main.go",
+      "type": "file",
+      "size": 4821,
+      "mtime": "2026-09-14T10:08:33Z"
+    }
+  ],
+  "next_cursor": "eyJuIjoibWFpbi5nbyJ9"
+}
 ```
 
 **GET /v1/workspaces/{workspace_id}/files/content**
