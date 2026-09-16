@@ -29,7 +29,7 @@ workspace 可大可小。有人几个配置文件，有人半个仓库加构建�
 
 挂载层、对象存储、沙箱怎么看见这块盘，分开选。
 
-挂载层用 JuiceFS，元数据放 Redis，数据放对象存储。Agent 和用户面对的还是普通目录，不是对象 key。节点上挂一次，上面的目录树按租户 / 用户 / workspace 往下切就行。
+挂载层用 JuiceFS，元数据放 Redis，数据放对象存储。Agent 和用户面对的还是普通目录，不是对象 key。节点上挂一次，上面的目录树按用户 / workspace 往下切就行。
 
 对象存储用自建 MinIO，走 S3 兼容。一期不绑某家公有云，桶在自己这边。JuiceFS 认的是 S3，以后后端换成别的兼容实现，挂载协议不用换。
 
@@ -80,17 +80,17 @@ hostPath 必须落在 `/data/shared/` 白名单下。控制面再怎么拼路径
 盘上真实路径是分层的，沙箱里只暴露一个工作根目录：
 
 ```
-宿主机: /data/shared/jfs/{tenant_id}/{user_id}/{workspace_id}
+宿主机: /data/shared/jfs/{user_id}/{workspace_id}
 沙箱内: /workspace
 ```
 
-`/data/shared/` 是 JuiceFS 在节点上的挂载前缀，也是 hostPath 白名单。再往下用租户、用户、workspace 切开，目录即隔离单元。Agent **只存 `workspace_id`**，不要去记沙箱 ID，也不要去拼宿主机路径——那些是控制面的事。
+`/data/shared/` 是 JuiceFS 在节点上的挂载前缀，也是 hostPath 白名单。再往下用用户、workspace 切开，目录即隔离单元。初期租户通常就一个，目录不必再套 tenant。Agent **只存 `workspace_id`**，不要去记沙箱 ID，也不要去拼宿主机路径——那些是控制面的事。
 
 三个动作：
 
-**创建。** 控制面**新生成**一个 `workspace_id`（UUID），再按 `/data/shared/jfs/{tenant_id}/{user_id}/{workspace_id}` mkdir，拉起沙箱，Host Mount 到 `/workspace`。返回 `workspace_id` 和 `sandbox_id`，Agent 只把前者存下来。创建不做「目录有了就复用」——那是 restore 的事。
+**创建。** 控制面**新生成**一个 `workspace_id`（UUID），再按 `/data/shared/jfs/{user_id}/{workspace_id}` mkdir，拉起沙箱，Host Mount 到 `/workspace`。返回 `workspace_id` 和 `sandbox_id`，Agent 只把前者存下来。创建不做「目录有了就复用」——那是 restore 的事。
 
-**恢复。** 先校验这个 workspace 是否属于当前租户和用户，再 ensure 目录还在（被误删就重建空目录，别悄悄挂到别人的路径上），然后**新开一个沙箱**，挂的还是同一条目录。不是唤醒旧虚拟机，是短命计算重新贴上长寿目录。
+**恢复。** 先校验这个 workspace 是否属于当前用户，再 ensure 目录还在（被误删就重建空目录，别悄悄挂到别人的路径上），然后**新开一个沙箱**，挂的还是同一条目录。不是唤醒旧虚拟机，是短命计算重新贴上长寿目录。
 
 **结束。** 只关沙箱，不动目录。进程拆掉、MicroVM 回收；`/data/shared/jfs/.../workspace_id` 继续留着，下次 restore 还能挂上。
 
@@ -98,9 +98,9 @@ hostPath 必须落在 `/data/shared/` 白名单下。控制面再怎么拼路径
 
 ## API
 
-对 Agent 只暴露会话，不暴露挂载细节。这些 JSON 接口 Bearer 就能调；控制面从身份里解析租户和用户，路径里的 `{tenant_id}` / `{user_id}` 不让调用方随便填。浏览器预览、下载走 Cookie，后面单独说。
+对 Agent 只暴露会话，不暴露挂载细节。这些 JSON 接口 Bearer 就能调；控制面从身份里解析用户，路径里的 `{user_id}` 不让调用方随便填。浏览器预览、下载走 Cookie，后面单独说。
 
-创建请求不传、也不认 body 里的 `workspace_id`。租户和用户只从鉴权里取，不从 body 里填；要用已经存在的目录，走 restore。
+创建请求不传、也不认 body 里的 `workspace_id`。用户只从鉴权里取，不从 body 里填；要用已经存在的目录，走 restore。
 
 **POST /v1/sessions（创建）**
 
@@ -159,9 +159,9 @@ restore 不收旧的 `sandbox_id`。旧沙箱可能已经没了，恢复只认�
 
 ## Files 面
 
-Files 管目录，不必先开沙箱。先看这个空间占了多大、里面有哪些文件、下载一份、预览一段视频（拖进度那种）、iframe 里看 PDF、给文件改个名——这些都不该绑在「沙箱必须在跑」。
+Files 管目录，不必先开沙箱。先看这个空间占了多大、里面有哪些文件、下载一份、打包一个目录带走、预览一段视频（拖进度那种）、iframe 里看 PDF、给文件改个名——这些都不该绑在「沙箱必须在跑」。
 
-Sessions 管算力：开、恢复、关。Files 管目录：列表、读内容、改名。两边共用同一条路径 `/data/shared/jfs/{tenant_id}/{user_id}/{workspace_id}`。没开沙箱，控制面照样打这条 JuiceFS 挂载路径。
+Sessions 管算力：开、恢复、关。Files 管目录：列表、读内容、打包下载、改名。两边共用同一条路径 `/data/shared/jfs/{user_id}/{workspace_id}`。没开沙箱，控制面照样打这条 JuiceFS 挂载路径。
 
 ## Files API
 
@@ -175,7 +175,7 @@ Sessions 管算力：开、恢复、关。Files 管目录：列表、读内容�
 
 列目录，分页。query 里 `path`、`limit`、`cursor`。`path` 相对根。
 
-`cursor` 是分页游标，不是编辑器 Cursor。第一页只传 `path`、`limit`；还有下一页的话，响应里带 `next_cursor`，下次请求把这个值放进 query 的 `cursor`。没有下一页，`next_cursor` 为空或不返回。
+第一页只传 `path`、`limit`；还有下一页的话，响应里带 `next_cursor`，下次请求把这个值放进 query 的 `cursor`。没有下一页，`next_cursor` 为空或不返回。
 
 响应 `entries` 每项至少有 `name`、`type`（`dir` 或 `file`）、`size`（目录可为 null）、`mtime`。默认排序：目录在前、文件在后；同类型按名字排。
 
@@ -206,9 +206,18 @@ Authorization: Bearer <token>
 
 **GET /v1/workspaces/{workspace_id}/files/content**
 
-单文件流。**必须支持 Range / 206**——视频拖进度、大文件分段下，都靠这个。`Content-Disposition`：预览用 inline，下载用 attachment；PDF 丢进 iframe 预览走 inline。目录打包下载一期可后做。
+单文件流。**必须支持 Range / 206**——视频拖进度、大文件分段下，都靠这个。`Content-Disposition`：预览用 inline，下载用 attachment；PDF 丢进 iframe 预览走 inline。
 
 浏览器 `<video src>`、iframe 塞 PDF 很难带 Authorization，这条走 Cookie，例子在下一节。
+
+**GET /v1/workspaces/{workspace_id}/files/archive**
+
+目录打包下载。query 里 `path` 相对根，把这棵子树打成 zip 或 tar，流式往外吐，别先落成一份临时大文件再回。单文件还是走 content；要拎走一个文件夹，走这条。
+
+```http
+GET /v1/workspaces/7f3a9c2e-4b81-4d6a-9e12-0c8f5a1b2d34/files/archive?path=/src
+Authorization: Bearer <token>
+```
 
 **POST /v1/workspaces/{workspace_id}/files/rename**
 
@@ -244,6 +253,6 @@ Range: bytes=0-1023
 
 ## 初期与演进
 
-一期范围：单节点挂一份 JuiceFS；控制面和 CubeSandbox 可以同机、必须分进程；Host Mount 只绑定 `/data/shared/` 下的路径；会话按「建目录 / 新开沙箱 / 只关沙箱」走通。开放注册先靠目录按需创建、沙箱用完即毁来消化流量，不上复杂的多租户存储 ACL。Files 面先做列表、单文件 Range 下载/预览、重命名、归属校验、Cookie；异步 stats、目录打包、更细的预览策略往后排。
+一期范围：单节点挂一份 JuiceFS；控制面和 CubeSandbox 可以同机、必须分进程；Host Mount 只绑定 `/data/shared/` 下的路径；会话按「建目录 / 新开沙箱 / 只关沙箱」走通。开放注册先靠目录按需创建、沙箱用完即毁来消化流量，不上复杂的多租户存储 ACL。Files 面先做列表、单文件 Range 下载/预览、目录打包下载、重命名、归属校验、Cookie；异步 stats、更细的预览策略往后排。
 
 这一期沙箱还不能在集群里漂移，挂载还绑在「这台节点已经挂了 JuiceFS」这个前提上。量上来、要调度、要把控制面和计算节点拆开之后，再上 Volume Plugin：多节点各自挂，按调度把 MicroVM 和对应目录放到一起。
